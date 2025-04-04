@@ -1,12 +1,17 @@
-from setuptools import setup, find_packages
+"""
+프로젝트 setup 자동화 스크립트.
+"""
+
 import pathlib
 
-# 프로젝트 루트 경로를 기준으로 README.md 파일을 읽어들입니다.
-here = pathlib.Path(__file__).parent
-long_description = (here / "docs/README.md").read_text() if (here / "docs/README.md").exists() else ""
+from setuptools import find_packages, setup
 
-# requirements.txt 파일에서 의존성 목록을 읽어옵니다.
-with open("requirements.txt", "r") as f:
+here = pathlib.Path(__file__).parent
+long_description = (
+    (here / "docs/README.md").read_text() if (here / "docs/README.md").exists() else ""
+)
+
+with open("requirements.txt", encoding="UTF-8") as f:
     requirements = f.read().splitlines()
 
 setup(
