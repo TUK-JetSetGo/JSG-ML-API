@@ -1,10 +1,12 @@
 """
-Itninerary 엔티티
+Itinerary 엔티티
 """
 
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import Any, Dict, List, Optional
+
+from domain.value_objects.time_value import TimeWindow
 
 
 @dataclass
@@ -44,6 +46,15 @@ class DayRoute:
         # 모든 route 요소를 정수로 변환
         self.route = [int(spot) for spot in self.route]
 
+    @property
+    def time_window(self) -> Optional[TimeWindow]:
+        """
+        start_time과 end_time이 모두 존재할 경우, TimeWindow VO를 반환합니다.
+        """
+        if self.start_time is not None and self.end_time is not None:
+            return TimeWindow(self.start_time, self.end_time)
+        return None
+
 
 @dataclass
 class ItineraryItem:
@@ -79,6 +90,15 @@ class ItineraryItem:
     def __post_init__(self):
         if isinstance(self.duration, str):
             self.duration = float(self.duration)
+
+    @property
+    def time_window(self) -> Optional[TimeWindow]:
+        """
+        start_time과 end_time이 모두 존재할 경우, TimeWindow VO를 반환합니다.
+        """
+        if self.start_time is not None and self.end_time is not None:
+            return TimeWindow(self.start_time, self.end_time)
+        return None
 
 
 @dataclass
