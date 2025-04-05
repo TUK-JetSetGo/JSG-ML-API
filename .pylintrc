@@ -2,4 +2,4 @@
 init-hook='import sys; sys.path.append(".")'
 
 [MESSAGES CONTROL]
-disable=F0002,C0411,C0413
+disable=F0002,C0411,C0413,R0914
