@@ -8,18 +8,25 @@ from domain.entities.tourist_spot import TouristSpot
 
 
 def test_post_init_type_conversion():
-    """__post_init__: 문자열로 전달된 id, latitude, longitude, activity_level를 올바르게 변환하는지 테스트"""
+    """
+    __post_init__: 문자열로 전달된
+    id, coordinate (latitude, longitude), activity_level를
+    올바르게 변환하는지 테스트
+    """
     tourist_spot = TouristSpot(
         id="101",
         name="Test Spot",
-        latitude="37.5665",
-        longitude="126.9780",
+        coordinate=("37.5665", "126.9780"),
         activity_level="0.75",
     )
     assert isinstance(tourist_spot.id, int) and tourist_spot.id == 101
-    assert isinstance(tourist_spot.latitude, float) and tourist_spot.latitude == 37.5665
     assert (
-        isinstance(tourist_spot.longitude, float) and tourist_spot.longitude == 126.9780
+        isinstance(tourist_spot.coordinate.latitude, float)
+        and tourist_spot.coordinate.latitude == 37.5665
+    )
+    assert (
+        isinstance(tourist_spot.coordinate.longitude, float)
+        and tourist_spot.coordinate.longitude == 126.9780
     )
     assert (
         isinstance(tourist_spot.activity_level, float)
@@ -35,7 +42,10 @@ def test_categories_conversion():
 
 
 def test_opening_hours_parsing_valid():
-    """__post_init__: 유효한 opening_hours 문자열을 파싱하여 opening_time과 closing_time을 설정하는지 테스트"""
+    """__post_init__:
+    유효한 opening_hours 문자열을 파싱하여
+    opening_time과 closing_time을 설정하는지 테스트
+    """
     tourist_spot = TouristSpot(
         id=103, name="Open Hours Test", opening_hours="07:00-20:00"
     )
@@ -46,7 +56,10 @@ def test_opening_hours_parsing_valid():
 
 
 def test_opening_hours_parsing_invalid():
-    """__post_init__: 잘못된 opening_hours 문자열이 들어오면 opening_time과 closing_time이 None이 되는지 테스트"""
+    """
+    __post_init__: 잘못된 opening_hours 문자열이 들어오면
+    opening_time과 closing_time이 None이 되는지 테스트
+    """
     tourist_spot = TouristSpot(
         id=104, name="Invalid Hours Test", opening_hours="invalid_format"
     )

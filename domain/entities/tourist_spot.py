@@ -7,13 +7,16 @@ from datetime import datetime
 from time import time
 from typing import List, Optional
 
+# VO 적용: Coordinate를 import 합니다.
+from domain.value_objects.coordinate import Coordinate
+
 
 @dataclass
 class TouristSpot:
     id: int
     name: str
-    latitude: float = 0.0
-    longitude: float = 0.0
+    # 기존의 위도/경도 대신 하나의 Coordinate VO 사용 (기본값은 (0.0, 0.0))
+    coordinate: Coordinate = field(default_factory=lambda: Coordinate(0.0, 0.0))
     activity_level: float = 0.0
     address: Optional[str] = None
     business_hours: Optional[str] = None
@@ -36,22 +39,18 @@ class TouristSpot:
     opening_hours: Optional[str] = None
 
     def __post_init__(self):
-        # ID, 좌표, activity_level의 타입 변환
+        # ID, activity_level, categories의 타입 변환
         if isinstance(self.id, str):
             self.id = int(self.id)
-        if isinstance(self.latitude, str):
-            self.latitude = float(self.latitude)
-        if isinstance(self.longitude, str):
-            self.longitude = float(self.longitude)
         if isinstance(self.activity_level, str):
             try:
                 self.activity_level = float(self.activity_level)
             except (ValueError, TypeError):
                 self.activity_level = 0.0
-
         if isinstance(self.categories, str):
             self.categories = [self.categories]
 
+        # opening_hours 파싱
         if self.opening_hours:
             try:
                 times = self.opening_hours.split("-")
@@ -68,6 +67,15 @@ class TouristSpot:
             except Exception:
                 self.opening_time = None
                 self.closing_time = None
+
+        # coordinate 변환 처리:
+        # coordinate 필드가 Coordinate 인스턴스가 아니라면, (lat, lon) 튜플이나 리스트 등으로 간주하여 변환합니다.
+        if not isinstance(self.coordinate, Coordinate):
+            try:
+                lat, lon = self.coordinate  # 예: (latitude, longitude)
+                self.__dict__["coordinate"] = Coordinate(float(lat), float(lon))
+            except Exception:
+                self.__dict__["coordinate"] = Coordinate(0.0, 0.0)
 
     def is_open_at(self, check_time: time) -> bool:
         """
