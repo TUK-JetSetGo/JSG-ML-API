@@ -7,7 +7,6 @@ from datetime import datetime
 from time import time
 from typing import List, Optional
 
-# VO 적용: Coordinate를 import 합니다.
 from domain.value_objects.coordinate import Coordinate
 
 
@@ -15,7 +14,6 @@ from domain.value_objects.coordinate import Coordinate
 class TouristSpot:
     id: int
     name: str
-    # 기존의 위도/경도 대신 하나의 Coordinate VO 사용 (기본값은 (0.0, 0.0))
     coordinate: Coordinate = field(default_factory=lambda: Coordinate(0.0, 0.0))
     activity_level: float = 0.0
     address: Optional[str] = None
