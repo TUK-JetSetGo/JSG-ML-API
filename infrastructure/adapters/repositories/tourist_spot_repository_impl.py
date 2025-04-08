@@ -17,7 +17,6 @@ DB_PASSWORD = os.getenv("DATABASE_PASSWORD")
 DB_ENDPOINT = os.getenv("DATABASE_ENDPOINT")
 DB_NAME = os.getenv("DATABASE_NAME")
 DB_PORT = os.getenv("DATABASE_PORT", "3306")
-print("DB_USERNAME:", os.getenv("DATABASE_USERNAME"))
 DATABASE_URL = (
     f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_ENDPOINT}:{DB_PORT}/{DB_NAME}"
 )
@@ -218,6 +217,7 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
             activity_level=row["activity_level"],
             address=row["address"],
             business_hours=row["business_hours"],
+            business_status=row['business_status'],
             category=json.loads(row["category"]) if row["category"] else [],
             home_page=row["home_page"],
             naver_booking_url=row["naver_booking_url"],
