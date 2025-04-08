@@ -1,8 +1,9 @@
 import pytest
-from sqlalchemy import text
+
 from domain.entities.tourist_spot import TouristSpot
 from domain.value_objects.coordinate import Coordinate
-from infrastructure.adapters.repositories.tourist_spot_repository_impl import TouristSpotRepositoryImpl
+from infrastructure.adapters.repositories.tourist_spot_repository_impl import \
+    TouristSpotRepositoryImpl
 
 
 @pytest.fixture
@@ -90,7 +91,7 @@ def test_find_nearby_in_memory(repo, session):
         average_visit_duration=0,
         opening_hours="",
         opening_time="",
-        closing_time=""
+        closing_time="",
     )
     repo.save(new_spot)
     nearby_spots = repo.find_nearby(33.247, 126.978, radius_km=1)
@@ -100,8 +101,7 @@ def test_find_nearby_in_memory(repo, session):
 
 def test_find_by_category_in_memory(repo, session):
     """특정 카테고리를 포함하는 레코드를 조회한다."""
-    spots = repo.find_by_category(['숙박', '호텔'])
-    print(spots)
+    spots = repo.find_by_category(["숙박", "호텔"])
     found = any("숙박" in spot.category for spot in spots)
     assert found
 

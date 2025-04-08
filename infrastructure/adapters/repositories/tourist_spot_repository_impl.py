@@ -1,10 +1,11 @@
-import os
 import json
+import os
 from datetime import time
 from typing import List, Optional
-from sqlalchemy import create_engine, text, bindparam
-from sqlalchemy.orm import sessionmaker, Session
+
 from dotenv import load_dotenv
+from sqlalchemy import bindparam, create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
 
 from domain.entities.tourist_spot import TouristSpot
 from domain.repositories.tourist_spot_repository import TouristSpotRepository
@@ -17,7 +18,9 @@ DB_ENDPOINT = os.getenv("DATABASE_ENDPOINT")
 DB_NAME = os.getenv("DATABASE_NAME")
 DB_PORT = os.getenv("DATABASE_PORT", "3306")
 print("DB_USERNAME:", os.getenv("DATABASE_USERNAME"))
-DATABASE_URL = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_ENDPOINT}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = (
+    f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_ENDPOINT}:{DB_PORT}/{DB_NAME}"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -58,27 +61,42 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
             self.session = SessionLocal()
 
     def find_by_id(self, tourist_spot_id: int) -> Optional[TouristSpot]:
-        query = text("SELECT * FROM tourist_spots WHERE tourist_spot_id = :tourist_spot_id")
-        row = self.session.execute(query, {"tourist_spot_id": tourist_spot_id}).mappings().first()
+        query = text(
+            "SELECT * FROM tourist_spots WHERE tourist_spot_id = :tourist_spot_id"
+        )
+        row = (
+            self.session.execute(query, {"tourist_spot_id": tourist_spot_id})
+            .mappings()
+            .first()
+        )
         if row is None:
             return None
         return self._map_row_to_entity(row)
 
     def find_by_city_id(self, travel_city_id: int) -> List[TouristSpot]:
-        query = text("SELECT * FROM tourist_spots WHERE travel_city_id = :travel_city_id")
-        rows = self.session.execute(query, {"travel_city_id": travel_city_id}).mappings().all()
+        query = text(
+            "SELECT * FROM tourist_spots WHERE travel_city_id = :travel_city_id"
+        )
+        rows = (
+            self.session.execute(query, {"travel_city_id": travel_city_id})
+            .mappings()
+            .all()
+        )
         return [self._map_row_to_entity(r) for r in rows]
 
     def find_by_ids(self, tourist_spot_ids: List[int]) -> List[TouristSpot]:
-        query = text("SELECT * FROM tourist_spots WHERE tourist_spot_id IN :ids").bindparams(
-            bindparam("ids", expanding=True)
-        )
+        query = text(
+            "SELECT * FROM tourist_spots WHERE tourist_spot_id IN :ids"
+        ).bindparams(bindparam("ids", expanding=True))
         rows = self.session.execute(query, {"ids": tourist_spot_ids}).mappings().all()
         return [self._map_row_to_entity(r) for r in rows]
 
-    def find_nearby(self, latitude: float, longitude: float, radius_km: float) -> List[TouristSpot]:
+    def find_nearby(
+        self, latitude: float, longitude: float, radius_km: float
+    ) -> List[TouristSpot]:
         R = 6371
-        query = text(f"""
+        query = text(
+            f"""
             SELECT * FROM (
               SELECT *,
                 {R} * ACOS(
@@ -89,10 +107,15 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
               FROM tourist_spots
             ) AS subquery
             WHERE distance <= :radius
-        """)
-        rows = self.session.execute(
-            query, {"lat": latitude, "lon": longitude, "radius": radius_km}
-        ).mappings().all()
+        """
+        )
+        rows = (
+            self.session.execute(
+                query, {"lat": latitude, "lon": longitude, "radius": radius_km}
+            )
+            .mappings()
+            .all()
+        )
         return [self._map_row_to_entity(r) for r in rows]
 
     def find_by_category(self, categories: List[str]) -> List[TouristSpot]:
@@ -113,7 +136,8 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
     def save(self, spot: TouristSpot) -> TouristSpot:
         existing = self.find_by_id(spot.tourist_spot_id)
         if existing:
-            query = text("""
+            query = text(
+                """
                 UPDATE tourist_spots
                 SET
                     name = :name,
@@ -134,9 +158,11 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                     opening_time = :opening_time,
                     closing_time = :closing_time
                 WHERE tourist_spot_id = :tourist_spot_id
-            """)
+            """
+            )
         else:
-            query = text("""
+            query = text(
+                """
                 INSERT INTO tourist_spots (
                     tourist_spot_id,
                     name,
@@ -176,7 +202,8 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                     :opening_time,
                     :closing_time
                 )
-            """)
+            """
+            )
 
         params = self._map_entity_to_params(spot)
         self.session.execute(query, params)
@@ -196,12 +223,18 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
             naver_booking_url=row["naver_booking_url"],
             tel=row["tel"],
             thumbnail_url=row["thumbnail_url"],
-            thumbnail_urls=json.loads(row["thumbnail_urls"]) if row["thumbnail_urls"] else [],
+            thumbnail_urls=(
+                json.loads(row["thumbnail_urls"]) if row["thumbnail_urls"] else []
+            ),
             travel_city_id=row["travel_city_id"],
             average_visit_duration=row["average_visit_duration"],
             opening_hours=row["opening_hours"],
-            opening_time=time.fromisoformat(row["opening_time"]) if row["opening_time"] else None,
-            closing_time=time.fromisoformat(row["closing_time"]) if row["closing_time"] else None,
+            opening_time=(
+                time.fromisoformat(row["opening_time"]) if row["opening_time"] else None
+            ),
+            closing_time=(
+                time.fromisoformat(row["closing_time"]) if row["closing_time"] else None
+            ),
         )
 
     def _map_entity_to_params(self, spot: TouristSpot) -> dict:
@@ -218,10 +251,16 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
             "naver_booking_url": spot.naver_booking_url,
             "tel": spot.tel,
             "thumbnail_url": spot.thumbnail_url,
-            "thumbnail_urls": json.dumps(spot.thumbnail_urls) if spot.thumbnail_urls else None,
+            "thumbnail_urls": (
+                json.dumps(spot.thumbnail_urls) if spot.thumbnail_urls else None
+            ),
             "travel_city_id": spot.travel_city_id,
             "average_visit_duration": spot.average_visit_duration,
             "opening_hours": spot.opening_hours,
-            "opening_time": spot.opening_time.isoformat() if spot.opening_time else None,
-            "closing_time": spot.closing_time.isoformat() if spot.closing_time else None,
+            "opening_time": (
+                spot.opening_time.isoformat() if spot.opening_time else None
+            ),
+            "closing_time": (
+                spot.closing_time.isoformat() if spot.closing_time else None
+            ),
         }

@@ -1,54 +1,65 @@
-# conftest.py
-import os
+"""
+유닛테스트용 인메모리 sqlite 데이터베이스 fixture
+"""
+
 import json
+from os import path
+
+import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-import pytest
+
 
 @pytest.fixture
 def in_memory_engine():
-    engine = create_engine("sqlite:///:memory:")
-    return engine
+    """인메모리 sqlite 메모리 생성."""
+    return create_engine("sqlite:///:memory:")
+
 
 @pytest.fixture
 def session(in_memory_engine):
-    SessionLocal = sessionmaker(bind=in_memory_engine)
-    session = SessionLocal()
+    """DB scheme 생성 및 json으로부터 더미데이터 주입"""
+    session_local = sessionmaker(bind=in_memory_engine)
+    session = session_local()
 
     with in_memory_engine.connect() as conn:
-        # 엔티티의 모든 필드에 맞춰 테이블 스키마를 구성
-        conn.execute(text("""
-            CREATE TABLE tourist_spots (
-                tourist_spot_id INTEGER PRIMARY KEY,
-                name VARCHAR(255),
-                latitude DOUBLE,
-                longitude DOUBLE,
-                activity_level FLOAT,
-                address VARCHAR(255),
-                business_status VARCHAR(255),
-                business_hours VARCHAR(255),
-                category TEXT,
-                home_page VARCHAR(255),
-                naver_booking_url VARCHAR(255),
-                tel VARCHAR(255),
-                thumbnail_url TEXT,
-                thumbnail_urls TEXT,
-                travel_city_id INTEGER,
-                average_visit_duration FLOAT,
-                opening_time VARCHAR(255),
-                closing_time VARCHAR(255),
-                opening_hours VARCHAR(255)
+        conn.execute(
+            text(
+                """
+                CREATE TABLE tourist_spots (
+                    tourist_spot_id INTEGER PRIMARY KEY,
+                    name VARCHAR(255),
+                    latitude DOUBLE,
+                    longitude DOUBLE,
+                    activity_level FLOAT,
+                    address VARCHAR(255),
+                    business_status VARCHAR(255),
+                    business_hours VARCHAR(255),
+                    category TEXT,
+                    home_page VARCHAR(255),
+                    naver_booking_url VARCHAR(255),
+                    tel VARCHAR(255),
+                    thumbnail_url TEXT,
+                    thumbnail_urls TEXT,
+                    travel_city_id INTEGER,
+                    average_visit_duration FLOAT,
+                    opening_time VARCHAR(255),
+                    closing_time VARCHAR(255),
+                    opening_hours VARCHAR(255)
+                )
+                """
             )
-        """))
+        )
         conn.commit()
 
-        json_path = os.path.join(os.path.dirname(__file__), "data", "test_place_data.json")
-        if os.path.exists(json_path):
-            with open(json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+        json_path = path.join(
+            path.dirname(__file__), "data", "test_place_data.json"
+        )
+        if path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
 
             for item in data:
-                # 실제 JSON 데이터에 없는 필드들은 기본값 지정
                 params = {
                     "tourist_spot_id": int(item.get("id", 0)),
                     "name": item.get("name", ""),
@@ -58,14 +69,13 @@ def session(in_memory_engine):
                     "address": item.get("address", ""),
                     "business_status": (
                         item.get("businessStatus", {})
-                            .get("status", {})
-                            .get("description", "")
+                        .get("status", {})
+                        .get("description", "")
                     ),
-                    # business_hours는 test_place_data.json 구조에 따라 적절히 매핑
                     "business_hours": item.get("businessHours", ""),
                     "category": json.dumps(item.get("category", []), ensure_ascii=False),
                     "home_page": item.get("homePage", ""),
-                    "naver_booking_url": "",  # 데이터에 없으므로 빈 문자열
+                    "naver_booking_url": "",
                     "tel": item.get("tel", ""),
                     "thumbnail_url": item.get("thumUrl", ""),
                     "thumbnail_urls": json.dumps(item.get("thumUrls", []), ensure_ascii=False),
@@ -73,11 +83,12 @@ def session(in_memory_engine):
                     "average_visit_duration": 1.0,
                     "opening_time": "",
                     "closing_time": "",
-                    "opening_hours": ""
+                    "opening_hours": "",
                 }
 
                 conn.execute(
-                    text("""
+                    text(
+                        """
                         INSERT INTO tourist_spots (
                             tourist_spot_id,
                             name,
@@ -119,8 +130,9 @@ def session(in_memory_engine):
                             :closing_time,
                             :opening_hours
                         )
-                    """),
-                    params
+                        """
+                    ),
+                    params,
                 )
             conn.commit()
 

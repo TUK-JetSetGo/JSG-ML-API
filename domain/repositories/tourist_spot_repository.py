@@ -1,8 +1,10 @@
 """
 관광지 리포지토리 인터페이스 모듈
 """
-from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+
+from abc import ABC
+from abc import abstractmethod
+from typing import List, Optional
 
 from domain.entities.tourist_spot import TouristSpot
 
@@ -50,7 +52,9 @@ class TouristSpotRepository(ABC):
         pass
 
     @abstractmethod
-    def find_nearby(self, latitude: float, longitude: float, radius_km: float) -> List[TouristSpot]:
+    def find_nearby(
+        self, latitude: float, longitude: float, radius_km: float
+    ) -> List[TouristSpot]:
         """
         주변 관광지 조회
 
