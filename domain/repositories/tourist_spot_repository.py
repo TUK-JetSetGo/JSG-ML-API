@@ -2,8 +2,7 @@
 관광지 리포지토리 인터페이스 모듈
 """
 
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import List, Optional
 
 from domain.entities.tourist_spot import TouristSpot

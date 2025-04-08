@@ -52,9 +52,7 @@ def session(in_memory_engine):
         )
         conn.commit()
 
-        json_path = path.join(
-            path.dirname(__file__), "data", "test_place_data.json"
-        )
+        json_path = path.join(path.dirname(__file__), "data", "test_place_data.json")
         if path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
@@ -73,12 +71,16 @@ def session(in_memory_engine):
                         .get("description", "")
                     ),
                     "business_hours": item.get("businessHours", ""),
-                    "category": json.dumps(item.get("category", []), ensure_ascii=False),
+                    "category": json.dumps(
+                        item.get("category", []), ensure_ascii=False
+                    ),
                     "home_page": item.get("homePage", ""),
                     "naver_booking_url": "",
                     "tel": item.get("tel", ""),
                     "thumbnail_url": item.get("thumUrl", ""),
-                    "thumbnail_urls": json.dumps(item.get("thumUrls", []), ensure_ascii=False),
+                    "thumbnail_urls": json.dumps(
+                        item.get("thumUrls", []), ensure_ascii=False
+                    ),
                     "travel_city_id": 0,
                     "average_visit_duration": 1.0,
                     "opening_time": "",
