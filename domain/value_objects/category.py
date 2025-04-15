@@ -8,18 +8,15 @@ from typing import Dict, List, Optional, Set
 
 
 class CategoryType(Enum):
-    """관광지 카테고리 유형"""
-
-    NATURE = auto()  # 자연
-    CULTURE = auto()  # 문화
-    HISTORY = auto()  # 역사
-    FOOD = auto()  # 음식
-    SHOPPING = auto()  # 쇼핑
-    ENTERTAINMENT = auto()  # 엔터테인먼트
-    RELAXATION = auto()  # 휴양
-    ADVENTURE = auto()  # 모험
-    EDUCATION = auto()  # 교육
-    OTHER = auto()  # 기타
+    NATURE = "자연"
+    CULTURE = "문화"
+    HISTORY = "역사"
+    FOOD = "음식"
+    SHOPPING = "쇼핑"
+    ENTERTAINMENT = "엔터테인먼트"
+    RELAXATION = "휴식"
+    ADVENTURE = "모험"
+    OTHER = "기타"  # 추가
 
 
 @dataclass(frozen=True)
@@ -37,71 +34,59 @@ class Category:
 
         # 카테고리 유형 매핑
         type_mapping = {
-            "nature": CategoryType.NATURE,
-            "natural": CategoryType.NATURE,
-            "mountain": CategoryType.NATURE,
-            "beach": CategoryType.NATURE,
-            "park": CategoryType.NATURE,
-            "garden": CategoryType.NATURE,
-            "forest": CategoryType.NATURE,
-            "lake": CategoryType.NATURE,
-            "river": CategoryType.NATURE,
-            "waterfall": CategoryType.NATURE,
-            "island": CategoryType.NATURE,
-            "culture": CategoryType.CULTURE,
-            "cultural": CategoryType.CULTURE,
-            "art": CategoryType.CULTURE,
-            "museum": CategoryType.CULTURE,
-            "gallery": CategoryType.CULTURE,
-            "theater": CategoryType.CULTURE,
-            "concert": CategoryType.CULTURE,
-            "festival": CategoryType.CULTURE,
-            "history": CategoryType.HISTORY,
-            "historical": CategoryType.HISTORY,
-            "heritage": CategoryType.HISTORY,
-            "monument": CategoryType.HISTORY,
-            "castle": CategoryType.HISTORY,
-            "palace": CategoryType.HISTORY,
-            "temple": CategoryType.HISTORY,
-            "shrine": CategoryType.HISTORY,
-            "ruins": CategoryType.HISTORY,
-            "food": CategoryType.FOOD,
-            "restaurant": CategoryType.FOOD,
-            "cafe": CategoryType.FOOD,
-            "bar": CategoryType.FOOD,
-            "dining": CategoryType.FOOD,
-            "cuisine": CategoryType.FOOD,
-            "gourmet": CategoryType.FOOD,
-            "shopping": CategoryType.SHOPPING,
-            "shop": CategoryType.SHOPPING,
-            "mall": CategoryType.SHOPPING,
-            "market": CategoryType.SHOPPING,
-            "store": CategoryType.SHOPPING,
-            "outlet": CategoryType.SHOPPING,
-            "entertainment": CategoryType.ENTERTAINMENT,
-            "amusement": CategoryType.ENTERTAINMENT,
-            "theme park": CategoryType.ENTERTAINMENT,
-            "zoo": CategoryType.ENTERTAINMENT,
-            "aquarium": CategoryType.ENTERTAINMENT,
-            "cinema": CategoryType.ENTERTAINMENT,
-            "nightlife": CategoryType.ENTERTAINMENT,
-            "relaxation": CategoryType.RELAXATION,
-            "spa": CategoryType.RELAXATION,
-            "hot spring": CategoryType.RELAXATION,
-            "resort": CategoryType.RELAXATION,
-            "wellness": CategoryType.RELAXATION,
-            "adventure": CategoryType.ADVENTURE,
-            "hiking": CategoryType.ADVENTURE,
-            "trekking": CategoryType.ADVENTURE,
-            "climbing": CategoryType.ADVENTURE,
-            "diving": CategoryType.ADVENTURE,
-            "surfing": CategoryType.ADVENTURE,
-            "skiing": CategoryType.ADVENTURE,
-            "rafting": CategoryType.ADVENTURE,
-            "education": CategoryType.EDUCATION,
-            "science": CategoryType.EDUCATION,
-            "library": CategoryType.EDUCATION,
-            "observatory": CategoryType.EDUCATION,
+            "불교": CategoryType.HISTORY,  # 종교적·역사적 요소로 판단
+            "릉": CategoryType.HISTORY,  # 역사적 유산
+            "묘": CategoryType.HISTORY,  # 유적/역사
+            "총": CategoryType.HISTORY,  # 의미가 다소 모호하나 역사적 요소로 판단
+            "테마파크": CategoryType.ENTERTAINMENT,
+            "폭포": CategoryType.NATURE,
+            "휴양림": CategoryType.NATURE,
+            "산림욕장": CategoryType.NATURE,
+            "섬": CategoryType.NATURE,
+            "계곡": CategoryType.NATURE,
+            "자연명소": CategoryType.NATURE,
+            "기념물": CategoryType.HISTORY,
+            "레일바이크": CategoryType.ADVENTURE,
+            "여행": CategoryType.ENTERTAINMENT,  # 여행 전반은 즐거움(엔터테인먼트) 관점으로 분류
+            "명소": CategoryType.ENTERTAINMENT,
+            "레저": CategoryType.ENTERTAINMENT,
+            "테마": CategoryType.ENTERTAINMENT,
+            "식물원": CategoryType.NATURE,
+            "수목원": CategoryType.NATURE,
+            "워터파크": CategoryType.ENTERTAINMENT,
+            "지역명소": CategoryType.ENTERTAINMENT,
+            "드라이브": CategoryType.ENTERTAINMENT,  # 즐기는 드라이브 코스 등
+            "아쿠아리움": CategoryType.ENTERTAINMENT,
+            "오름": CategoryType.NATURE,  # 제주 오름 등 자연형태
+            "박물관": CategoryType.CULTURE,
+            "자연": CategoryType.NATURE,
+            "생태공원": CategoryType.NATURE,
+            "지명": CategoryType.HISTORY,  # 지명의 경우 역사적 의미 부여
+            "관람": CategoryType.ENTERTAINMENT,  # 관람활동
+            "체험": CategoryType.ADVENTURE,  # 직접 체험하는 활동
+            "봉우리": CategoryType.NATURE,
+            "고지": CategoryType.NATURE,
+            "절": CategoryType.HISTORY,
+            "사찰": CategoryType.HISTORY,
+            "도립공원": CategoryType.NATURE,
+            "항구": CategoryType.HISTORY,  # 항구도 역사적, 문화적 가치로 볼 수 있음
+            "관광농원": CategoryType.NATURE,
+            "팜스테이": CategoryType.NATURE,
+            "테마공원": CategoryType.ENTERTAINMENT,
+            "강": CategoryType.NATURE,
+            "하천": CategoryType.NATURE,
+            "도시": CategoryType.CULTURE,  # 도시 관광은 문화 콘텐츠로 분류
+            "해수욕장": CategoryType.NATURE,
+            "해변": CategoryType.NATURE,
+            "체험마을": CategoryType.CULTURE,  # 마을 단위 체험은 문화적 요소 포함
+            "자연공원": CategoryType.NATURE,
+            "도보코스": CategoryType.ADVENTURE,
+            "온천": CategoryType.RELAXATION,
+            "스파": CategoryType.RELAXATION,
+            "산": CategoryType.NATURE,
+            "동물원": CategoryType.ENTERTAINMENT,
+            "유적지": CategoryType.HISTORY,
+            "사적지": CategoryType.HISTORY,
         }
 
         # 카테고리 유형 결정
