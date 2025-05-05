@@ -12,6 +12,7 @@ class UserProfile:
     not_visit_list: List[int] = field(default_factory=list)
     preferred_transport: str = "car"
 
+    id: int = 1  # TODO: 이거 나중에 DB 불러오도록 해야함.
     preferred_activity_level: Optional[float] = None  # 선호 활동 수준 (0-10)
     preferred_start_time: Optional[str] = None  # 선호 일일 시작 시간
     preferred_end_time: Optional[str] = None  # 선호 일일 종료 시간

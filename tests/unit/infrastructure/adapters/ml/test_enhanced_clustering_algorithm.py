@@ -2,8 +2,6 @@ import os
 import tempfile
 import unittest
 
-import numpy as np
-
 from infrastructure.adapters.ml.enhanced_clustering_algorithm import \
     EnhancedClusteringAlgorithm
 

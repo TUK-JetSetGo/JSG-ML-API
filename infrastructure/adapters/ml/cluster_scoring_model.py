@@ -203,6 +203,7 @@ class ClusterScoringModel:
         Returns:
             (클러스터 ID, 점수) 튜플 목록 (점수 내림차순 정렬)
         """
+
         cluster_scores = []
 
         for cluster_id, spots in clusters.items():
@@ -226,7 +227,7 @@ class ClusterScoringModel:
                     num_days=num_days,
                 )
             else:
-                base_list = [base_scores.get(spot.id, 0) for spot in spots]
+                base_list = [base_scores.get(spot.tourist_spot_id, 0) for spot in spots]
                 score_ml = np.mean(base_list) if base_list else 0.0
 
             # base_scores에 따른 클러스터의 평균 기본 점수 계산

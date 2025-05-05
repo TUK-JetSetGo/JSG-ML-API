@@ -2,7 +2,9 @@
 개선된 PTPPP 모델 모듈 - 일자별 연결성 고려
 """
 
+import logging
 import math
+import time
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -12,9 +14,15 @@ from domain.entities.tourist_spot import TouristSpot
 from domain.entities.user_profile import UserProfile
 from domain.value_objects.coordinate import Coordinate
 
+logger = logging.getLogger(__name__)
+
 
 class EnhancedPTPPPModel:
     """일자별 연결성을 고려한 개선된 PTPPP 모델"""
+
+    def _get_spot_id(self, spot):
+        # Support both production TouristSpot (tourist_spot_id) and test DummyTouristSpot (id)
+        return getattr(spot, "tourist_spot_id", getattr(spot, "id", None))
 
     def __init__(self):
         """초기화"""
@@ -31,6 +39,8 @@ class EnhancedPTPPPModel:
             거리 행렬 (2차원 리스트)
         """
         n = len(spots)
+        start_time = time.perf_counter()
+        logger.info(f"calculate_distance_matrix start: n={n}")
         distance_matrix = [[0.0] * n for _ in range(n)]
 
         for i in range(n):
@@ -48,6 +58,8 @@ class EnhancedPTPPPModel:
                 # 하버사인 공식으로 거리 계산
                 distance_matrix[i][j] = coord_i.distance_to(coord_j)
 
+        duration = time.perf_counter() - start_time
+        logger.info(f"calculate_distance_matrix done: n={n}, duration={duration:.2f}s")
         return distance_matrix
 
     def optimize_route(
@@ -125,22 +137,28 @@ class EnhancedPTPPPModel:
         Returns:
             일별 (최적 경로 인덱스 목록, 총 이동 거리, 총 소요 시간) 튜플 목록
         """
+        logger.info(
+            f"optimize_multi_day_route called: num_days={len(daily_spots)}, continuity_weight={continuity_weight}"
+        )
         num_days = len(daily_spots)
         if num_days == 0:
             return []
 
+        matrix_start = time.perf_counter()
+        logger.info("Starting distance matrix computation for all days")
         # 각 일자별 거리 행렬 계산
-        daily_distance_matrices = [
-            self.calculate_distance_matrix(spots) for spots in daily_spots
-        ]
+        matrix_duration = time.perf_counter() - matrix_start
+        logger.info(
+            f"Distance matrix computation done: duration={matrix_duration:.2f}s"
+        )
 
         # 각 일자별 ID-인덱스 매핑
         daily_id_to_idx = []
         daily_idx_to_id = []
 
         for day_spots in daily_spots:
-            id_to_idx = {spot.tourist_spot_id: i for i, spot in enumerate(day_spots)}
-            idx_to_id = {i: spot.tourist_spot_id for i, spot in enumerate(day_spots)}
+            id_to_idx = {self._get_spot_id(spot): i for i, spot in enumerate(day_spots)}
+            idx_to_id = {i: self._get_spot_id(spot) for i, spot in enumerate(day_spots)}
             daily_id_to_idx.append(id_to_idx)
             daily_idx_to_id.append(idx_to_id)
 
@@ -215,7 +233,7 @@ class EnhancedPTPPPModel:
         """
         must_visit_indices = []
         for i, spot in enumerate(spots):
-            if spot.tourist_spot_id in user_profile.must_visit_list:
+            if self._get_spot_id(spot) in user_profile.must_visit_list:
                 must_visit_indices.append(i)
         return must_visit_indices
 
@@ -255,16 +273,19 @@ class EnhancedPTPPPModel:
         if not spots:
             return [], 0.0, 0.0
 
+        # Helper to get spot ID for consistency
+        get_id = self._get_spot_id
+
         # 중복 제거
         unique_spots = []
         unique_indices = []
         seen_ids = set()
-
         for i, spot in enumerate(spots):
-            if spot.tourist_spot_id not in seen_ids:
+            spot_id = get_id(spot)
+            if spot_id not in seen_ids:
                 unique_spots.append(spot)
                 unique_indices.append(i)
-                seen_ids.add(spot.tourist_spot_id)
+                seen_ids.add(spot_id)
 
         # 시작 지점이 중복 제거 후에도 존재하는지 확인
         if start_spot_index not in unique_indices:
@@ -279,10 +300,12 @@ class EnhancedPTPPPModel:
         # 방문 장소 수 제한
         n = len(unique_spots)
         K = min(n - 1, max_places - 1)  # 시작 지점 제외
+        logger.info(
+            f"_optimize_single_day_route start: n={n}, K={K}, prev_day_end_provided={prev_day_end is not None}"
+        )
 
         # 인덱스-ID 매핑
-        idx_to_id = {i: unique_spots[i].id for i in range(n)}
-        id_to_idx = {v: k for k, v in idx_to_id.items()}
+        idx_to_id = {i: get_id(unique_spots[i]) for i in range(n)}
 
         # 거리 행렬 계산
         cost_matrix = self.calculate_distance_matrix(unique_spots)
@@ -428,6 +451,10 @@ class EnhancedPTPPPModel:
         )
         prob += distance_expr <= max_distance, "MaxDistance"
 
+        # 최소 이동 거리 제약: 하루당 최대 이동 거리의 4/5 이상 이동 보장
+        min_distance = max_distance * 4 / 5
+        prob += distance_expr >= min_distance, "MinDistance"
+
         # 최대 소요 시간 제약
         visit_time_terms = []
         for i in range(1, n):
@@ -454,8 +481,20 @@ class EnhancedPTPPPModel:
             <= (max_places - 1)
         ), "MaxPlaces"
 
+        # 최소 방문 장소 수 제약: 하루당 최대 방문 수의 2/3 이상 방문 보장
+        min_visits = math.ceil((max_places - 1) * 2 / 3)
+        prob += (
+            pulp.lpSum([Y[(k, i)] for i in range(1, n) for k in range(1, K + 1)])
+            >= min_visits
+        ), "MinPlaces"
+
         # 문제 해결
-        prob.solve(pulp.PULP_CBC_CMD(msg=0))
+        start_time = time.perf_counter()
+        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+        solve_duration = time.perf_counter() - start_time
+        logger.info(
+            f"PTPPP solve completed in {solve_duration:.2f}s, status={pulp.LpStatus[prob.status]}"
+        )
 
         # 최적해가 없는 경우
         if pulp.LpStatus[prob.status] not in ["Optimal", "Feasible"]:

@@ -42,6 +42,8 @@ class DummyTouristSpot:
         self.activity_level = activity_level
         self.coordinate = DummyCoordinate(latitude, longitude)
         self.categories = categories if categories is not None else []
+        # Alias for category attribute used by ScoreCalculationService
+        self.category = self.categories
         self.opening_time = opening_time
         self.closing_time = closing_time
         self.average_visit_duration = average_visit_duration

@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from build.lib.domain.entities.tourist_spot import TouristSpot
+from domain.entities.tourist_spot import TouristSpot
 from domain.entities.user_profile import UserProfile
 from domain.value_objects.category import CategorySet
 
@@ -58,17 +58,42 @@ class ScoreCalculationService:
         Returns:
             카테고리 매칭 점수
         """
-        if not spot.categories or not user_profile.themes:
+        if not spot.category or not user_profile.themes:
             return 0.0
 
         spot_categories = CategorySet()
-        spot_categories.add_from_list(spot.categories)
+        spot_categories.add_from_list(spot.category)
 
         user_categories = CategorySet()
         user_categories.add_from_list(user_profile.themes)
 
         match_score = spot_categories.match_score(user_categories)
 
+        return match_score * 100.0
+
+    @staticmethod
+    def _calculate_category_match_score(
+        spot: TouristSpot, user_profile: UserProfile
+    ) -> float:
+        """
+        관광지와 사용자 프로필 간의 카테고리 매칭 점수 계산
+
+        Args:
+            spot: 관광지
+            user_profile: 사용자 프로필
+
+        Returns:
+            카테고리 매칭 점수
+        """
+
+        if not spot.category or not user_profile.themes:
+            return 0.0
+
+        spot_categories = CategorySet()
+        spot_categories.add_from_list(spot.category)
+        user_categories = CategorySet()
+        user_categories.add_from_list(user_profile.themes)
+        match_score = spot_categories.match_score(user_categories)
         return match_score * 100.0
 
     @staticmethod
@@ -94,7 +119,7 @@ class ScoreCalculationService:
         """
         if base_scores is None:
             base_scores = {
-                spot.id: ScoreCalculationService.calculate_base_score(
+                spot.tourist_spot_id: ScoreCalculationService.calculate_base_score(
                     spot, user_profile
                 )
                 for spot in spots
@@ -103,8 +128,10 @@ class ScoreCalculationService:
         for k in range(1, max_priority + 1):
             priority_scores[k] = {}
             for spot in spots:
-                base_scores = base_scores.get(spot.id, 0.0)
-                priority_scores[k][spot.id] = base_scores * priority_scale / np.sqrt(k)
+                base_scores = base_scores.get(spot.tourist_spot_id, 0.0)
+                priority_scores[k][spot.tourist_spot_id] = (
+                    base_scores * priority_scale / np.sqrt(k)
+                )
 
         return priority_scores
 
@@ -130,29 +157,20 @@ class ScoreCalculationService:
         opening_time_str = spot.opening_time.strftime("%H:%M")
         closing_time_str = spot.closing_time.strftime("%H:%M")
 
-        # 현재 시간이 개장 시간과 폐장 시간 사이인 경우 최대 점수 반환
         if opening_time_str <= current_time <= closing_time_str:
             return max_score
-
         if current_time < opening_time_str:
-            # 개장 시간까지 남은 시간이 적을수록 점수가 높아짐
             opening_hours = int(opening_time_str.split(":")[0])
             opening_minutes = int(opening_time_str.split(":")[1])
             opening_time_value = opening_hours + opening_minutes / 60.0
             time_diff = opening_time_value - current_time_hours
-
-            # 최대 6시간 전까지 고려
             normalized_diff = max(0, 1 - time_diff / 6.0)
             return max_score * normalized_diff
-
         else:
-            # 폐장 후 경과 시간이 적을수록 점수가 높아짐
             closing_hours = int(closing_time_str.split(":")[0])
             closing_minutes = int(closing_time_str.split(":")[1])
             closing_time_value = closing_hours + closing_minutes / 60.0
             time_diff = current_time_hours - closing_time_value
-
-            # 최대 2시간 후까지 고려
             normalized_diff = max(0, 1 - time_diff / 2.0)
             return max_score * normalized_diff
 

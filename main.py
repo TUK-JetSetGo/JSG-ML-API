@@ -2,8 +2,18 @@
 메인 애플리케이션 모듈
 """
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from interface.api.endpoints import itinerary
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
@@ -20,6 +30,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(itinerary.router)
 
 
 @app.get("/")
@@ -41,4 +53,10 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0")
+    uvicorn.run(
+        "main:app",  # ← module_name:app_name 형태의 import string
+        host="0.0.0.0",
+        port=8000,
+        reload=True,  # 코드 변경 시 자동 재시작 활성화
+        log_level="debug",  # 터미널에 debug/info 로그 출력
+    )
