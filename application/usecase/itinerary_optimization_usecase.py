@@ -65,14 +65,14 @@ class ItineraryOptimizationUseCase:
     """여행 일정 최적화 유스케이스"""
 
     def __init__(
-        self,
-        tourist_spot_repository: TouristSpotRepository,
-        clustering_service: ClusteringService,
-        route_optimization_service: RouteOptimizationService,
-        score_calculation_service: ScoreCalculationService,
-        time_calculation_service: TimeCalculationService,
-        user_preference_model: UserPreferenceModel,
-        enhanced_clustering_algorithm: EnhancedClusteringAlgorithm,
+            self,
+            tourist_spot_repository: TouristSpotRepository,
+            clustering_service: ClusteringService,
+            route_optimization_service: RouteOptimizationService,
+            score_calculation_service: ScoreCalculationService,
+            time_calculation_service: TimeCalculationService,
+            user_preference_model: UserPreferenceModel,
+            enhanced_clustering_algorithm: EnhancedClusteringAlgorithm,
     ):
         """
         초기화
@@ -88,7 +88,7 @@ class ItineraryOptimizationUseCase:
         self.enhanced_clustering_algorithm = enhanced_clustering_algorithm
 
     def execute(
-        self, request: ItineraryOptimizationRequest
+            self, request: ItineraryOptimizationRequest
     ) -> ItineraryOptimizationResponse:
         """
         유스케이스 실행
@@ -100,22 +100,20 @@ class ItineraryOptimizationUseCase:
             응답 데이터
         """
 
-        # 1. 레거시처럼 user_id, city_id, num_days 등의 인터페이스 유지
         user_profile = request.user_profile
         logger.info(f"[itinerary_optimization_usecase.execute] step1 finished")
 
-        # 2. 관광지 목록 조회
         spots = self.tourist_spot_repository.find_by_city_id(request.city_id)
         if not spots:
             raise ValueError(f"도시에 관광지가 없습니다: {request.city_id}")
         logger.info(f"[itinerary_optimization_usecase.execute] step2 finished")
-        # 3. 아직 학습되지 않은 경우, 더미 평점 데이터를 이용해 학습
+
         if not hasattr(self.user_preference_model.user_features_scaler, "mean_"):
             dummy_users = generate_dummy_users(num_users=100)
             dummy_ratings = generate_dummy_ratings(dummy_users, spots)
             self.user_preference_model.train(dummy_users, spots, dummy_ratings)
         logger.info(f"[itinerary_optimization_usecase.execute] step3 finished")
-        # 4. 사용자 선호도 점수 계산
+
         spot_scores = {}
         for spot in spots:
             # 기본 점수
@@ -148,10 +146,10 @@ class ItineraryOptimizationUseCase:
 
             # 종합 점수
             total_score = (
-                base_score * 0.2
-                + user_preference_score * 0.3
-                + popularity_score * 0.2
-                + theme_score * 0.3
+                    base_score * 0.2
+                    + user_preference_score * 0.3
+                    + popularity_score * 0.2
+                    + theme_score * 0.3
             )
             if spot.tourist_spot_id in user_profile.must_visit_list:
                 total_score = max(total_score, 9.0)
@@ -180,7 +178,6 @@ class ItineraryOptimizationUseCase:
             base_scores=spot_scores,
         )
         logger.info(f"[itinerary_optimization_usecase.execute] step6 finished")
-        # retain clusters for response building
 
         # 7. 일자별 경로 최적화
         daily_routes = []
@@ -188,10 +185,8 @@ class ItineraryOptimizationUseCase:
 
         for day_idx, cluster_spots in enumerate(selected_clusters):
             logger.info(
-                f"[step7] day {day_idx+1}: cluster_spots count={len(cluster_spots)}, selected_clusters total={len(selected_clusters)}"
+                f"[step7] day {day_idx + 1}: cluster_spots count={len(cluster_spots)}, selected_clusters total={len(selected_clusters)}"
             )
-            # 첫째 날은 첫 번째 관광지부터 시작
-            # 이후 날짜는 이전 날의 마지막 관광지에서 시작
             if day_idx == 0 or not daily_routes:
                 start_spot_idx = 0
             else:
@@ -200,12 +195,12 @@ class ItineraryOptimizationUseCase:
                     start_spot_idx = prev_day_route[-2]
                 else:
                     start_spot_idx = 0
-            # Sanitize start_spot_idx to prevent out-of-range access
+
             if cluster_spots:
                 safe_start = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
                 if safe_start != start_spot_idx:
                     logger.warning(
-                        f"[step7] day {day_idx+1}: adjusted start_spot_idx from {start_spot_idx} to {safe_start}"
+                        f"[step7] day {day_idx + 1}: adjusted start_spot_idx from {start_spot_idx} to {safe_start}"
                     )
                 start_spot_idx = safe_start
             else:
@@ -237,45 +232,77 @@ class ItineraryOptimizationUseCase:
                 )
             )
             logger.info(
-                f"[step7] day {day_idx+1}: optimized route={route}, dist={total_dist}, dur={total_dur}"
+                f"[step7] day {day_idx + 1}: optimized route={route}, dist={total_dist}, dur={total_dur}"
             )
 
             logger.info(
-                f"[step7] day {day_idx+1}: pre-fallback check, route length={len(route)}"
+                f"[step7] day {day_idx + 1}: pre-fallback check, route length={len(route)}"
             )
             if any(idx < 0 or idx >= len(cluster_spots) for idx in route):
                 logger.warning(
-                    f"[itinerary_optimization_usecase] Invalid route indices for day {day_idx+1}: {route}"
+                    f"[itinerary_optimization_usecase] Invalid route indices for day {day_idx + 1}: {route}"
                 )
-                # Treat as fallback on invalid indices
+
                 if cluster_spots:
-                    safe_start = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
-                    max_places = request.max_spots_per_day
-                    # Select top-scoring spots within this cluster for fallback
-                    ordered_indices = sorted(
-                        range(len(cluster_spots)),
-                        key=lambda i: priority_scores.get(
-                            cluster_spots[i].tourist_spot_id, 0.0
-                        ),
-                        reverse=True,
-                    )
-                    limited_indices = ordered_indices[:max_places]
-                    # For fallback, start at safe_start then visit top spots in cluster (no return loop)
-                    if limited_indices and limited_indices[0] == safe_start:
-                        fallback_route = limited_indices
-                    else:
-                        fallback_route = [safe_start] + limited_indices
+                    safe_start_idx_in_cluster = -1
+                    if cluster_spots:
+                        safe_start_idx_in_cluster = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
+
+                    max_fallback_spots = request.max_spots_per_day
+                    current_fallback_route_indices = []
+
+                    if cluster_spots and 0 <= safe_start_idx_in_cluster < len(cluster_spots):
+                        current_fallback_route_indices.append(safe_start_idx_in_cluster)
+
+                    if cluster_spots:
+                        for spot_idx_in_cluster in must_visit_indices:
+                            if len(current_fallback_route_indices) < max_fallback_spots:
+                                if 0 <= spot_idx_in_cluster < len(
+                                        cluster_spots) and spot_idx_in_cluster not in current_fallback_route_indices:
+                                    current_fallback_route_indices.append(spot_idx_in_cluster)
+                            else:
+                                break
+
+                    if cluster_spots and len(current_fallback_route_indices) < max_fallback_spots:
+
+                        available_spots_for_scoring = []
+                        for i_spot_idx in range(len(cluster_spots)):
+                            if i_spot_idx not in current_fallback_route_indices:
+                                score = priority_scores.get(cluster_spots[i_spot_idx].tourist_spot_id, 0.0)
+                                available_spots_for_scoring.append((score, i_spot_idx))
+
+                        available_spots_sorted_by_score = sorted(
+                            available_spots_for_scoring,
+                            key=lambda x: x[0],
+                            reverse=True,
+                        )
+
+                        for _score, spot_idx_in_cluster in available_spots_sorted_by_score:
+                            if len(current_fallback_route_indices) >= max_fallback_spots:
+                                break
+                            if spot_idx_in_cluster in current_fallback_route_indices:
+                                continue
+                            temp_route = current_fallback_route_indices + [spot_idx_in_cluster]
+                            temp_timetable = self.time_calculation_service.generate_timetable(
+                                spots=cluster_spots,
+                                route=temp_route,
+                            )
+                            temp_travel_dur = sum(
+                                item["duration"] for item in temp_timetable if item["type"] == "travel")
+                            temp_travel_dist = temp_travel_dur * request.transport_speed_kmh
+                            if temp_travel_dist <= request.max_distance_per_day_km:
+                                current_fallback_route_indices.append(spot_idx_in_cluster)
+
+                    fallback_route = current_fallback_route_indices
                 else:
                     fallback_route = []
                 logger.warning(
-                    f"[step7] day {day_idx+1}: invalid indices, fallback_route={fallback_route}"
+                    f"[step7] day {day_idx + 1}: invalid indices, fallback_route={fallback_route}"
                 )
-                # Generate timetable for fallback to compute actual durations and distances
                 timetable = self.time_calculation_service.generate_timetable(
                     spots=cluster_spots,
                     route=fallback_route,
                 )
-                # Compute total travel duration and approximate distance
                 fallback_dur = sum(
                     item["duration"] for item in timetable if item["type"] == "travel"
                 )
@@ -284,47 +311,76 @@ class ItineraryOptimizationUseCase:
                 daily_stats.append(
                     {
                         "day": day_idx + 1,
-                        "num_spots": len(limited_indices),
+                        "num_spots": len(fallback_route),
                         "total_distance_km": fallback_dist,
                         "total_duration_hours": fallback_dur,
                         "spots": [
-                            cluster_spots[i].tourist_spot_id for i in limited_indices
+                            cluster_spots[i].tourist_spot_id for i in fallback_route if 0 <= i < len(cluster_spots)
                         ],
                     }
                 )
                 continue
-            # TODO: Failback 고도화 필요.
             if not route or len(route) < 2:
-                # 빈 경로일 때는 최소한 시작지→시작지 순환 경로로 대체하거나,
-                # 통계를 빈 값으로 기록하고 다음으로 건너뜁니다.
                 if cluster_spots:
-                    safe_start = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
-                    max_places = request.max_spots_per_day
-                    # Select top-scoring spots within this cluster for fallback
-                    ordered_indices = sorted(
-                        range(len(cluster_spots)),
-                        key=lambda i: priority_scores.get(
-                            cluster_spots[i].tourist_spot_id, 0.0
-                        ),
-                        reverse=True,
-                    )
-                    limited_indices = ordered_indices[:max_places]
-                    # For fallback, start at safe_start then visit top spots in cluster (no return loop)
-                    if limited_indices and limited_indices[0] == safe_start:
-                        fallback_route = limited_indices
-                    else:
-                        fallback_route = [safe_start] + limited_indices
+                    safe_start_idx_in_cluster = -1
+                    if cluster_spots:
+                        safe_start_idx_in_cluster = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
+
+                    max_fallback_spots = request.max_spots_per_day
+                    current_fallback_route_indices = []
+
+                    if cluster_spots and 0 <= safe_start_idx_in_cluster < len(cluster_spots):
+                        current_fallback_route_indices.append(safe_start_idx_in_cluster)
+
+                    if cluster_spots:
+                        for spot_idx_in_cluster in must_visit_indices:
+                            if len(current_fallback_route_indices) < max_fallback_spots:
+                                if 0 <= spot_idx_in_cluster < len(
+                                        cluster_spots) and spot_idx_in_cluster not in current_fallback_route_indices:
+                                    current_fallback_route_indices.append(spot_idx_in_cluster)
+                            else:
+                                break
+
+                    if cluster_spots and len(current_fallback_route_indices) < max_fallback_spots:
+                        available_spots_for_scoring = []
+                        for i_spot_idx in range(len(cluster_spots)):
+                            if i_spot_idx not in current_fallback_route_indices:
+                                score = priority_scores.get(cluster_spots[i_spot_idx].tourist_spot_id, 0.0)
+                                available_spots_for_scoring.append((score, i_spot_idx))
+
+                        available_spots_sorted_by_score = sorted(
+                            available_spots_for_scoring,
+                            key=lambda x: x[0],
+                            reverse=True,
+                        )
+
+                        for _score, spot_idx_in_cluster in available_spots_sorted_by_score:
+                            if len(current_fallback_route_indices) >= max_fallback_spots:
+                                break
+                            if spot_idx_in_cluster in current_fallback_route_indices:
+                                continue
+
+                            temp_route = current_fallback_route_indices + [spot_idx_in_cluster]
+                            temp_timetable = self.time_calculation_service.generate_timetable(
+                                spots=cluster_spots,
+                                route=temp_route,
+                            )
+                            temp_travel_dur = sum(
+                                item["duration"] for item in temp_timetable if item["type"] == "travel")
+                            temp_travel_dist = temp_travel_dur * request.transport_speed_kmh
+                            if temp_travel_dist <= request.max_distance_per_day_km:
+                                current_fallback_route_indices.append(spot_idx_in_cluster)
+
+                    fallback_route = current_fallback_route_indices
                 else:
                     fallback_route = []
                 logger.warning(
-                    f"[step7] day {day_idx+1}: empty or too short route, fallback_route={fallback_route}"
+                    f"[step7] day {day_idx + 1}: empty or too short route, fallback_route={fallback_route}"
                 )
-                # Generate timetable for fallback to compute actual durations and distances
                 timetable = self.time_calculation_service.generate_timetable(
                     spots=cluster_spots,
                     route=fallback_route,
                 )
-                # Compute total travel duration and approximate distance
                 fallback_dur = sum(
                     item["duration"] for item in timetable if item["type"] == "travel"
                 )
@@ -333,19 +389,18 @@ class ItineraryOptimizationUseCase:
                 daily_stats.append(
                     {
                         "day": day_idx + 1,
-                        "num_spots": len(limited_indices),
+                        "num_spots": len(fallback_route),
                         "total_distance_km": fallback_dist,
                         "total_duration_hours": fallback_dur,
                         "spots": [
-                            cluster_spots[i].tourist_spot_id for i in limited_indices
+                            cluster_spots[i].tourist_spot_id for i in fallback_route if 0 <= i < len(cluster_spots)
                         ],
                     }
                 )
-                # 연속성 계산용 prev_day_end는 업데이트하지 않음
                 continue
 
             daily_routes.append((route, total_dist, total_dur))
-            logger.info(f"[step7] day {day_idx+1}: daily_routes now={daily_routes}")
+            logger.info(f"[step7] day {day_idx + 1}: daily_routes now={daily_routes}")
 
             # 일자별 통계
             daily_stats.append(
@@ -359,7 +414,6 @@ class ItineraryOptimizationUseCase:
                     ],
                 }
             )
-        # Log collected daily_stats after loop and before step8
         logger.info(
             f"[itinerary_optimization_usecase] Collected daily_stats: {daily_stats}"
         )
@@ -377,7 +431,7 @@ class ItineraryOptimizationUseCase:
 
         for day_idx, (route, total_dist, total_dur) in enumerate(daily_routes):
             logger.info(
-                f"[step8] day {day_idx+1}: preparing timetable, day_spots count={len(selected_clusters[day_idx])}, route={route}"
+                f"[step8] day {day_idx + 1}: preparing timetable, day_spots count={len(selected_clusters[day_idx])}, route={route}"
             )
             day_spots = selected_clusters[day_idx]
             if not route or not day_spots:
@@ -418,7 +472,6 @@ class ItineraryOptimizationUseCase:
 
             itinerary.days.append(day_obj)
         logger.info(f"[itinerary_optimization_usecase.execute] step8 finished")
-        # 9. DB 저장 로직 생략 -> 생성된 itinerary를 그대로 사용
         saved_itinerary = itinerary
         logger.info(f"[itinerary_optimization_usecase.execute] step9 finished")
         # 10. 응답 데이터 구성
@@ -437,8 +490,6 @@ class ItineraryOptimizationUseCase:
             ),
             "days": [],
         }
-
-        # Log itinerary_dict after definition, before populating days
         logger.info(
             f"[itinerary_optimization_usecase] itinerary_dict: {itinerary_dict}"
         )
@@ -488,7 +539,6 @@ class ItineraryOptimizationUseCase:
             "preferred_meal_times": user_profile.preferred_meal_times,
             "feature_vector": getattr(user_profile, "feature_vector", {}),
         }
-        # Log user_profile_dict after definition
         logger.info(
             f"[itinerary_optimization_usecase] user_profile_dict: {user_profile_dict}"
         )
@@ -506,7 +556,6 @@ class ItineraryOptimizationUseCase:
             f"[itinerary_optimization_usecase] raw_daily_routes: {daily_routes}"
         )
 
-        # Reuse daily_stats directly for response
         stats_dict["daily_stats"] = daily_stats
         logger.info(f"stats_dict with daily_stats: {stats_dict}")
 
@@ -535,7 +584,6 @@ def generate_dummy_users(num_users: int) -> List[UserProfile]:
     ]
 
     for user_id in range(1, num_users + 1):
-        # 랜덤하게 travel_type, theme 등을 선정
         travel_type = random.choice(travel_types)
         themes = random.sample(all_themes, k=random.randint(1, 3))
 
@@ -557,7 +605,7 @@ def generate_dummy_users(num_users: int) -> List[UserProfile]:
 
 
 def generate_dummy_ratings(
-    users: List[UserProfile], spots: List[TouristSpot]
+        users: List[UserProfile], spots: List[TouristSpot]
 ) -> List[Tuple[int, int, float]]:
     """
     여러 사용자와 여러 관광지에 대한 (user_id, tourist_spot_id, rating)을 생성.
