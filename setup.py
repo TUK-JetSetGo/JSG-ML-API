@@ -3,6 +3,8 @@
 """
 
 import pathlib
+import subprocess
+from datetime import datetime
 
 from setuptools import find_packages, setup
 
@@ -14,9 +16,28 @@ long_description = (
 with open("requirements.txt", encoding="UTF-8") as f:
     requirements = f.read().splitlines()
 
+
+def get_version():
+    """
+    base_version+YYYYMMDD-gitSHA. 형식으로 버전 생성
+    SHA가 유효하지 않으면 실패.
+    """
+    base_version = "0.1.0"
+    date = datetime.now().strftime("%Y%m%d")
+    try:
+        sha = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            .decode("utf-8")
+            .strip()
+        )
+    except subprocess.CalledProcessError:
+        sha = "dev"
+    return f"{base_version}+{date}-{sha}"
+
+
 setup(
     name="JSG-ML-API",
-    version="0.1.0",
+    version=get_version(),
     description="A ML API",
     long_description=long_description,
     long_description_content_type="text/markdown",
