@@ -65,14 +65,14 @@ class ItineraryOptimizationUseCase:
     """여행 일정 최적화 유스케이스"""
 
     def __init__(
-            self,
-            tourist_spot_repository: TouristSpotRepository,
-            clustering_service: ClusteringService,
-            route_optimization_service: RouteOptimizationService,
-            score_calculation_service: ScoreCalculationService,
-            time_calculation_service: TimeCalculationService,
-            user_preference_model: UserPreferenceModel,
-            enhanced_clustering_algorithm: EnhancedClusteringAlgorithm,
+        self,
+        tourist_spot_repository: TouristSpotRepository,
+        clustering_service: ClusteringService,
+        route_optimization_service: RouteOptimizationService,
+        score_calculation_service: ScoreCalculationService,
+        time_calculation_service: TimeCalculationService,
+        user_preference_model: UserPreferenceModel,
+        enhanced_clustering_algorithm: EnhancedClusteringAlgorithm,
     ):
         """
         초기화
@@ -88,7 +88,7 @@ class ItineraryOptimizationUseCase:
         self.enhanced_clustering_algorithm = enhanced_clustering_algorithm
 
     def execute(
-            self, request: ItineraryOptimizationRequest
+        self, request: ItineraryOptimizationRequest
     ) -> ItineraryOptimizationResponse:
         """
         유스케이스 실행
@@ -146,10 +146,10 @@ class ItineraryOptimizationUseCase:
 
             # 종합 점수
             total_score = (
-                    base_score * 0.2
-                    + user_preference_score * 0.3
-                    + popularity_score * 0.2
-                    + theme_score * 0.3
+                base_score * 0.2
+                + user_preference_score * 0.3
+                + popularity_score * 0.2
+                + theme_score * 0.3
             )
             if spot.tourist_spot_id in user_profile.must_visit_list:
                 total_score = max(total_score, 9.0)
@@ -246,29 +246,43 @@ class ItineraryOptimizationUseCase:
                 if cluster_spots:
                     safe_start_idx_in_cluster = -1
                     if cluster_spots:
-                        safe_start_idx_in_cluster = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
+                        safe_start_idx_in_cluster = min(
+                            max(start_spot_idx, 0), len(cluster_spots) - 1
+                        )
 
                     max_fallback_spots = request.max_spots_per_day
                     current_fallback_route_indices = []
 
-                    if cluster_spots and 0 <= safe_start_idx_in_cluster < len(cluster_spots):
+                    if cluster_spots and 0 <= safe_start_idx_in_cluster < len(
+                        cluster_spots
+                    ):
                         current_fallback_route_indices.append(safe_start_idx_in_cluster)
 
                     if cluster_spots:
                         for spot_idx_in_cluster in must_visit_indices:
                             if len(current_fallback_route_indices) < max_fallback_spots:
-                                if 0 <= spot_idx_in_cluster < len(
-                                        cluster_spots) and spot_idx_in_cluster not in current_fallback_route_indices:
-                                    current_fallback_route_indices.append(spot_idx_in_cluster)
+                                if (
+                                    0 <= spot_idx_in_cluster < len(cluster_spots)
+                                    and spot_idx_in_cluster
+                                    not in current_fallback_route_indices
+                                ):
+                                    current_fallback_route_indices.append(
+                                        spot_idx_in_cluster
+                                    )
                             else:
                                 break
 
-                    if cluster_spots and len(current_fallback_route_indices) < max_fallback_spots:
+                    if (
+                        cluster_spots
+                        and len(current_fallback_route_indices) < max_fallback_spots
+                    ):
 
                         available_spots_for_scoring = []
                         for i_spot_idx in range(len(cluster_spots)):
                             if i_spot_idx not in current_fallback_route_indices:
-                                score = priority_scores.get(cluster_spots[i_spot_idx].tourist_spot_id, 0.0)
+                                score = priority_scores.get(
+                                    cluster_spots[i_spot_idx].tourist_spot_id, 0.0
+                                )
                                 available_spots_for_scoring.append((score, i_spot_idx))
 
                         available_spots_sorted_by_score = sorted(
@@ -277,21 +291,38 @@ class ItineraryOptimizationUseCase:
                             reverse=True,
                         )
 
-                        for _score, spot_idx_in_cluster in available_spots_sorted_by_score:
-                            if len(current_fallback_route_indices) >= max_fallback_spots:
+                        for (
+                            _score,
+                            spot_idx_in_cluster,
+                        ) in available_spots_sorted_by_score:
+                            if (
+                                len(current_fallback_route_indices)
+                                >= max_fallback_spots
+                            ):
                                 break
                             if spot_idx_in_cluster in current_fallback_route_indices:
                                 continue
-                            temp_route = current_fallback_route_indices + [spot_idx_in_cluster]
-                            temp_timetable = self.time_calculation_service.generate_timetable(
-                                spots=cluster_spots,
-                                route=temp_route,
+                            temp_route = current_fallback_route_indices + [
+                                spot_idx_in_cluster
+                            ]
+                            temp_timetable = (
+                                self.time_calculation_service.generate_timetable(
+                                    spots=cluster_spots,
+                                    route=temp_route,
+                                )
                             )
                             temp_travel_dur = sum(
-                                item["duration"] for item in temp_timetable if item["type"] == "travel")
-                            temp_travel_dist = temp_travel_dur * request.transport_speed_kmh
+                                item["duration"]
+                                for item in temp_timetable
+                                if item["type"] == "travel"
+                            )
+                            temp_travel_dist = (
+                                temp_travel_dur * request.transport_speed_kmh
+                            )
                             if temp_travel_dist <= request.max_distance_per_day_km:
-                                current_fallback_route_indices.append(spot_idx_in_cluster)
+                                current_fallback_route_indices.append(
+                                    spot_idx_in_cluster
+                                )
 
                     fallback_route = current_fallback_route_indices
                 else:
@@ -315,7 +346,9 @@ class ItineraryOptimizationUseCase:
                         "total_distance_km": fallback_dist,
                         "total_duration_hours": fallback_dur,
                         "spots": [
-                            cluster_spots[i].tourist_spot_id for i in fallback_route if 0 <= i < len(cluster_spots)
+                            cluster_spots[i].tourist_spot_id
+                            for i in fallback_route
+                            if 0 <= i < len(cluster_spots)
                         ],
                     }
                 )
@@ -324,28 +357,42 @@ class ItineraryOptimizationUseCase:
                 if cluster_spots:
                     safe_start_idx_in_cluster = -1
                     if cluster_spots:
-                        safe_start_idx_in_cluster = min(max(start_spot_idx, 0), len(cluster_spots) - 1)
+                        safe_start_idx_in_cluster = min(
+                            max(start_spot_idx, 0), len(cluster_spots) - 1
+                        )
 
                     max_fallback_spots = request.max_spots_per_day
                     current_fallback_route_indices = []
 
-                    if cluster_spots and 0 <= safe_start_idx_in_cluster < len(cluster_spots):
+                    if cluster_spots and 0 <= safe_start_idx_in_cluster < len(
+                        cluster_spots
+                    ):
                         current_fallback_route_indices.append(safe_start_idx_in_cluster)
 
                     if cluster_spots:
                         for spot_idx_in_cluster in must_visit_indices:
                             if len(current_fallback_route_indices) < max_fallback_spots:
-                                if 0 <= spot_idx_in_cluster < len(
-                                        cluster_spots) and spot_idx_in_cluster not in current_fallback_route_indices:
-                                    current_fallback_route_indices.append(spot_idx_in_cluster)
+                                if (
+                                    0 <= spot_idx_in_cluster < len(cluster_spots)
+                                    and spot_idx_in_cluster
+                                    not in current_fallback_route_indices
+                                ):
+                                    current_fallback_route_indices.append(
+                                        spot_idx_in_cluster
+                                    )
                             else:
                                 break
 
-                    if cluster_spots and len(current_fallback_route_indices) < max_fallback_spots:
+                    if (
+                        cluster_spots
+                        and len(current_fallback_route_indices) < max_fallback_spots
+                    ):
                         available_spots_for_scoring = []
                         for i_spot_idx in range(len(cluster_spots)):
                             if i_spot_idx not in current_fallback_route_indices:
-                                score = priority_scores.get(cluster_spots[i_spot_idx].tourist_spot_id, 0.0)
+                                score = priority_scores.get(
+                                    cluster_spots[i_spot_idx].tourist_spot_id, 0.0
+                                )
                                 available_spots_for_scoring.append((score, i_spot_idx))
 
                         available_spots_sorted_by_score = sorted(
@@ -354,22 +401,39 @@ class ItineraryOptimizationUseCase:
                             reverse=True,
                         )
 
-                        for _score, spot_idx_in_cluster in available_spots_sorted_by_score:
-                            if len(current_fallback_route_indices) >= max_fallback_spots:
+                        for (
+                            _score,
+                            spot_idx_in_cluster,
+                        ) in available_spots_sorted_by_score:
+                            if (
+                                len(current_fallback_route_indices)
+                                >= max_fallback_spots
+                            ):
                                 break
                             if spot_idx_in_cluster in current_fallback_route_indices:
                                 continue
 
-                            temp_route = current_fallback_route_indices + [spot_idx_in_cluster]
-                            temp_timetable = self.time_calculation_service.generate_timetable(
-                                spots=cluster_spots,
-                                route=temp_route,
+                            temp_route = current_fallback_route_indices + [
+                                spot_idx_in_cluster
+                            ]
+                            temp_timetable = (
+                                self.time_calculation_service.generate_timetable(
+                                    spots=cluster_spots,
+                                    route=temp_route,
+                                )
                             )
                             temp_travel_dur = sum(
-                                item["duration"] for item in temp_timetable if item["type"] == "travel")
-                            temp_travel_dist = temp_travel_dur * request.transport_speed_kmh
+                                item["duration"]
+                                for item in temp_timetable
+                                if item["type"] == "travel"
+                            )
+                            temp_travel_dist = (
+                                temp_travel_dur * request.transport_speed_kmh
+                            )
                             if temp_travel_dist <= request.max_distance_per_day_km:
-                                current_fallback_route_indices.append(spot_idx_in_cluster)
+                                current_fallback_route_indices.append(
+                                    spot_idx_in_cluster
+                                )
 
                     fallback_route = current_fallback_route_indices
                 else:
@@ -393,7 +457,9 @@ class ItineraryOptimizationUseCase:
                         "total_distance_km": fallback_dist,
                         "total_duration_hours": fallback_dur,
                         "spots": [
-                            cluster_spots[i].tourist_spot_id for i in fallback_route if 0 <= i < len(cluster_spots)
+                            cluster_spots[i].tourist_spot_id
+                            for i in fallback_route
+                            if 0 <= i < len(cluster_spots)
                         ],
                     }
                 )
@@ -605,7 +671,7 @@ def generate_dummy_users(num_users: int) -> List[UserProfile]:
 
 
 def generate_dummy_ratings(
-        users: List[UserProfile], spots: List[TouristSpot]
+    users: List[UserProfile], spots: List[TouristSpot]
 ) -> List[Tuple[int, int, float]]:
     """
     여러 사용자와 여러 관광지에 대한 (user_id, tourist_spot_id, rating)을 생성.

@@ -6,7 +6,7 @@ wheel:
 
 docker: wheel
 	@echo "Building Docker image..."
-	docker build -t jsg-ml:latest .
+	docker build -f Dockerfile -t jsg-ml:latest .
 
 deploy: docker
 	@echo "Deploying Docker container..."
