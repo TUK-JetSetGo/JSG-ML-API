@@ -43,3 +43,4 @@ typing_extensions
 tzdata
 uvicorn
 pre-commit
+pymysql
