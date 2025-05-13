@@ -2,7 +2,7 @@ name: Deploy to EC2 via ECR
 
 on:
   push:
-    branches: ["feat/#12-cicd"]
+    branches: ["main"]
 
 env:
   AWS_REGION: ap-northeast-2
