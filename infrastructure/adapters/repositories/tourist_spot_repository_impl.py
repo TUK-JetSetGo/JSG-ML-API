@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import time
 from typing import List, Optional
 
 from dotenv import load_dotenv
@@ -28,27 +27,24 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 class TouristSpotRepositoryImpl(TouristSpotRepository):
     """
     MySQL RDS를 이용한 관광지 레포지토리 구현체
-    컬럼명과 엔티티(TouristSpot) 필드를 일치시켰다.
-    DB 스키마 예시:
+    (다이어그램 상 존재하는 컬럼만 반영)
+
+    실제 테이블 tourist_spots 예시:
         CREATE TABLE tourist_spots (
             tourist_spot_id BIGINT PRIMARY KEY,
             name VARCHAR(255),
             latitude DOUBLE,
             longitude DOUBLE,
-            activity_level FLOAT,
-            address VARCHAR(255),
-            business_hours VARCHAR(255),
+            activity_level VARCHAR(255),
+            address TEXT,
+            business_status VARCHAR(255),
             category JSON,
             home_page VARCHAR(255),
             naver_booking_url VARCHAR(255),
             tel VARCHAR(255),
             thumbnail_url TEXT,
             thumbnail_urls JSON,
-            travel_city_id BIGINT,
-            average_visit_duration FLOAT,
-            opening_hours VARCHAR(255),
-            opening_time TIME,
-            closing_time TIME
+            travel_city_id BIGINT
         );
     """
 
@@ -118,12 +114,14 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
         return [self._map_row_to_entity(r) for r in rows]
 
     def find_by_category(self, categories: List[str]) -> List[TouristSpot]:
+        """JSON 컬럼(category)에 특정 문자열이 포함된 행 검색."""
         if not categories:
             return []
         filters = []
         params = {}
         for i, cat in enumerate(categories):
             param_name = f"cat_{i}"
+            # JSON 내에 cat 문자열이 포함되어 있는지 LIKE로 확인
             filters.append(f"category LIKE :{param_name}")
             params[param_name] = f'%"{cat}"%'
         condition = " OR ".join(filters)
@@ -133,6 +131,7 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
         return [self._map_row_to_entity(r) for r in rows]
 
     def save(self, spot: TouristSpot) -> TouristSpot:
+        """INSERT or UPDATE 후 commit."""
         existing = self.find_by_id(spot.tourist_spot_id)
         if existing:
             query = text(
@@ -144,18 +143,14 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                     longitude = :longitude,
                     activity_level = :activity_level,
                     address = :address,
-                    business_hours = :business_hours,
+                    business_status = :business_status,
                     category = :category,
                     home_page = :home_page,
                     naver_booking_url = :naver_booking_url,
                     tel = :tel,
                     thumbnail_url = :thumbnail_url,
                     thumbnail_urls = :thumbnail_urls,
-                    travel_city_id = :travel_city_id,
-                    average_visit_duration = :average_visit_duration,
-                    opening_hours = :opening_hours,
-                    opening_time = :opening_time,
-                    closing_time = :closing_time
+                    travel_city_id = :travel_city_id
                 WHERE tourist_spot_id = :tourist_spot_id
             """
             )
@@ -169,18 +164,14 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                     longitude,
                     activity_level,
                     address,
-                    business_hours,
+                    business_status,
                     category,
                     home_page,
                     naver_booking_url,
                     tel,
                     thumbnail_url,
                     thumbnail_urls,
-                    travel_city_id,
-                    average_visit_duration,
-                    opening_hours,
-                    opening_time,
-                    closing_time
+                    travel_city_id
                 ) VALUES (
                     :tourist_spot_id,
                     :name,
@@ -188,18 +179,14 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                     :longitude,
                     :activity_level,
                     :address,
-                    :business_hours,
+                    :business_status,
                     :category,
                     :home_page,
                     :naver_booking_url,
                     :tel,
                     :thumbnail_url,
                     :thumbnail_urls,
-                    :travel_city_id,
-                    :average_visit_duration,
-                    :opening_hours,
-                    :opening_time,
-                    :closing_time
+                    :travel_city_id
                 )
             """
             )
@@ -210,14 +197,16 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
         return spot
 
     def _map_row_to_entity(self, row) -> TouristSpot:
+        """DB Row -> TouristSpot 엔티티 변환."""
         return TouristSpot(
             tourist_spot_id=row["tourist_spot_id"],
             name=row["name"],
             coordinate=Coordinate(row["latitude"], row["longitude"]),
+            # activity_level이 varchar이므로 문자열 처리
             activity_level=row["activity_level"],
             address=row["address"],
-            business_hours=row["business_hours"],
-            business_status=row['business_status'],
+            # business_status는 다이어그램 기준 컬럼 존재
+            business_status=row["business_status"],
             category=json.loads(row["category"]) if row["category"] else [],
             home_page=row["home_page"],
             naver_booking_url=row["naver_booking_url"],
@@ -227,25 +216,18 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                 json.loads(row["thumbnail_urls"]) if row["thumbnail_urls"] else []
             ),
             travel_city_id=row["travel_city_id"],
-            average_visit_duration=row["average_visit_duration"],
-            opening_hours=row["opening_hours"],
-            opening_time=(
-                time.fromisoformat(row["opening_time"]) if row["opening_time"] else None
-            ),
-            closing_time=(
-                time.fromisoformat(row["closing_time"]) if row["closing_time"] else None
-            ),
         )
 
     def _map_entity_to_params(self, spot: TouristSpot) -> dict:
+        """TouristSpot 엔티티 -> SQL 파라미터 맵핑."""
         return {
             "tourist_spot_id": spot.tourist_spot_id,
             "name": spot.name,
             "latitude": spot.coordinate.latitude,
             "longitude": spot.coordinate.longitude,
-            "activity_level": spot.activity_level,
+            "activity_level": spot.activity_level,  # varchar
             "address": spot.address,
-            "business_hours": spot.business_hours,
+            "business_status": spot.business_status,
             "category": json.dumps(spot.category) if spot.category else None,
             "home_page": spot.home_page,
             "naver_booking_url": spot.naver_booking_url,
@@ -255,12 +237,4 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
                 json.dumps(spot.thumbnail_urls) if spot.thumbnail_urls else None
             ),
             "travel_city_id": spot.travel_city_id,
-            "average_visit_duration": spot.average_visit_duration,
-            "opening_hours": spot.opening_hours,
-            "opening_time": (
-                spot.opening_time.isoformat() if spot.opening_time else None
-            ),
-            "closing_time": (
-                spot.closing_time.isoformat() if spot.closing_time else None
-            ),
         }
