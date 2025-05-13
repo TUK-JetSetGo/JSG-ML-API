@@ -6,8 +6,11 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY: jsg-ml
   IMAGE_TAG: latest
+  ECR_ACCOUNT_ID: 905418480679
+  ECR_REPOSITORY: jsg-ml
+  ECR_REGISTRY: 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com
+  IMAGE_URI: 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com/jsg-ml:latest
 
 jobs:
   build-and-deploy:
@@ -25,14 +28,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and push Docker image
         run: |
           docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $IMAGE_URI
+          docker push $IMAGE_URI
 
       - name: SSH and deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -41,7 +43,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            docker login -u AWS -p $(aws ecr get-login-password --region ${{ env.AWS_REGION }}) ${{ steps.login-ecr.outputs.registry }}
-            docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+            docker pull $IMAGE_URI
             docker rm -f jsg-ml-running || true
-            docker run -d -p 8000:8000 --name jsg-ml-running ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
+            docker run -d -p 8000:8000 --name jsg-ml-running $IMAGE_URI
