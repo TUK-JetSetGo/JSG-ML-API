@@ -2,11 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY dist/jsg_ml_api-*.whl /app/
-COPY requirements.txt /app/
-COPY main.py /app/
+# requirements 먼저 복사하고 설치
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-RUN pip install --upgrade pip && \
-    pip install jsg_ml_api-*.whl
+# 나머지 코드 전체 복사
+COPY . .
 
 CMD ["python", "main.py"]
