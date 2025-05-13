@@ -35,7 +35,6 @@ jobs:
           docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REPOSITORY:$IMAGE_TAG $IMAGE_URI
           docker push $IMAGE_URI
-
       - name: SSH and deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -43,11 +42,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            export AWS_REGION=${AWS_REGION}
-            export ECR_REGISTRY=${ECR_REGISTRY}
-            export IMAGE_URI=${IMAGE_URI}
-
-            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-            docker pull $IMAGE_URI
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com
+            docker pull 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com/jsg-ml:latest
             docker rm -f jsg-ml-running || true
-            docker run -d -p 8000:8000 --name jsg-ml-running $IMAGE_URI
+            docker run -d -p 8000:8000 --name jsg-ml-running 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com/jsg-ml:latest
