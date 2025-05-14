@@ -2,7 +2,7 @@ name: Deploy to EC2 via ECR
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
 
 env:
   AWS_REGION: ap-northeast-2
@@ -45,4 +45,16 @@ jobs:
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com
             docker pull 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com/jsg-ml:latest
             docker rm -f jsg-ml-running || true
-            docker run -d -p 8000:8000 --name jsg-ml-running 905418480679.dkr.ecr.ap-northeast-2.amazonaws.com/jsg-ml:latest
+            
+            cat <<EOF > /home/ubuntu/.env
+            DATABASE_USER_NAME=${{ secrets.DB_USERNAME }}
+            DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DATABASE_ENDPOINT=${{ secrets.DB_ENDPOINT }}
+            DATABASE_NAME=${{ secrets.DB_NAME }}
+            DATABASE_PORT=${{ secrets.DB_PORT }}
+            EOF
+
+            docker run -d -p 8000:8000 \
+              --env-file /home/ubuntu/.env \
+              --name jsg-ml-running \
+              905418480679.dkr.ecr.ap-northeast-2.amazonaws.com/jsg-ml:latest
