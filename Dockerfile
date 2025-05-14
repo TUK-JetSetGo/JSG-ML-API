@@ -2,11 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY dist/jsg_ml_api-*.whl /app/
-COPY requirements.txt /app/
-COPY main.py /app/
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip && \
-    pip install jsg_ml_api-*.whl
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY . .
 
 CMD ["python", "main.py"]

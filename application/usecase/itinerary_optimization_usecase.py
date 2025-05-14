@@ -217,20 +217,45 @@ class ItineraryOptimizationUseCase:
                 if spot.tourist_spot_id in user_profile.must_visit_list:
                     must_visit_indices.append(i)
 
+            # 반드시 방문해야 하는 지점 ID 집합 (현재 클러스터 내)
+            must_visit_spot_ids_for_cluster = {
+                spot.tourist_spot_id
+                for spot in cluster_spots
+                if spot.tourist_spot_id in user_profile.must_visit_list
+            }
+
             # 경로 최적화
-            route, total_dist, total_dur = (
-                self.route_optimization_service.optimize_route(
-                    spots=cluster_spots,
-                    start_spot_index=start_spot_idx,
+            # generate_itinerary is called for a single day's cluster_spots here.
+            # It expects daily_spots_input as List[TouristSpot] for a single day.
+            # It expects daily_start_indices_input as int for a single day.
+            # It returns List[Tuple[List[int], float, float]]
+            optimized_route_info_list = (
+                self.route_optimization_service.generate_itinerary(
+                    daily_spots_input=cluster_spots,
+                    user_profile=user_profile,
+                    daily_start_indices_input=start_spot_idx,
+                    daily_max_distance_input=request.max_distance_per_day_km,
+                    daily_max_duration_input=request.max_duration_per_day_hours,
+                    max_places_per_day=request.max_spots_per_day,
                     base_scores=spot_scores,
-                    priority_scores={day_idx: priority_scores},
-                    max_distance=request.max_distance_per_day_km,
-                    max_duration=request.max_duration_per_day_hours,
-                    max_places=request.max_spots_per_day + 1,
-                    must_visit_indices=must_visit_indices,
-                    transport_speed_kmh=request.transport_speed_kmh,
+                    priority_scores={},
+                    must_visit_spot_ids_input=must_visit_spot_ids_for_cluster,
+                    ts_max_iterations_per_day=200,
                 )
             )
+
+            if (
+                optimized_route_info_list
+                and optimized_route_info_list[0]
+                and isinstance(optimized_route_info_list[0], tuple)
+                and len(optimized_route_info_list[0]) == 3
+            ):
+                route, total_dist, total_dur = optimized_route_info_list[0]
+            else:
+                route, total_dist, total_dur = [], 0.0, 0.0
+                logger.warning(
+                    f"[step7] day {day_idx + 1}: No valid route found or malformed result from generate_itinerary. Proceeding with empty route. Result: {optimized_route_info_list}"
+                )
             logger.info(
                 f"[step7] day {day_idx + 1}: optimized route={route}, dist={total_dist}, dur={total_dur}"
             )
