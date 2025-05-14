@@ -1,6 +1,7 @@
 """
 개선된 클러스터링 알고리즘 모듈
 """
+
 from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
