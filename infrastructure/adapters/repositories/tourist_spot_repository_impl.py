@@ -68,7 +68,7 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
             return [self._map_row_to_entity(r) for r in rows]
         except Exception as e:
             # 실제 환경에서는 로깅 처리
-            print(f"Error in find_all: {e}")
+            logger.error(f"Error in find_all: {e}", exc_info=True)
             return []
 
     def find_by_id(self, tourist_spot_id: int) -> Optional[TouristSpot]:
