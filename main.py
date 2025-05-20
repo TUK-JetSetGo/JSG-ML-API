@@ -7,7 +7,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from interface.api.endpoints import itinerary
+from interface.api.endpoints import itinerary, alternative_spot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +32,7 @@ app.add_middleware(
 )
 
 app.include_router(itinerary.router)
+app.include_router(alternative_spot.router)
 
 
 @app.get("/")

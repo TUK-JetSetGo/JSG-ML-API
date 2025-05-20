@@ -12,6 +12,16 @@ class TouristSpotRepository(ABC):
     """관광지 정보에 접근하기 위한 리포지토리 인터페이스"""
 
     @abstractmethod
+    def find_all(self) -> List[TouristSpot]:
+        """
+        모든 관광지 조회
+
+        Returns:
+            모든 관광지 객체 목록
+        """
+        pass
+
+    @abstractmethod
     def find_by_id(self, tourist_spot_id: int) -> Optional[TouristSpot]:
         """
         ID로 관광지 조회

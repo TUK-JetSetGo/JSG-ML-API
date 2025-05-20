@@ -55,6 +55,22 @@ class TouristSpotRepositoryImpl(TouristSpotRepository):
             SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
             self.session = SessionLocal()
 
+    def find_all(self) -> List[TouristSpot]:
+        """
+        모든 관광지 조회
+
+        Returns:
+            모든 관광지 객체 목록
+        """
+        try:
+            query = text("SELECT * FROM tourist_spots")
+            rows = self.session.execute(query).mappings().all()
+            return [self._map_row_to_entity(r) for r in rows]
+        except Exception as e:
+            # 실제 환경에서는 로깅 처리
+            print(f"Error in find_all: {e}")
+            return []
+
     def find_by_id(self, tourist_spot_id: int) -> Optional[TouristSpot]:
         query = text(
             "SELECT * FROM tourist_spots WHERE tourist_spot_id = :tourist_spot_id"
