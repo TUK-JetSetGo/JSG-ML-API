@@ -8,12 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from application.usecase.alternative_spot_usecase import (
-    AlternativeSpotRequest, AlternativeSpotResponse, AlternativeSpotUseCase
-)
+    AlternativeSpotRequest, AlternativeSpotResponse, AlternativeSpotUseCase)
 from domain.services.alternative_spot_service import AlternativeSpotService
-from infrastructure.adapters.repositories.tourist_spot_repository_impl import (
+from infrastructure.adapters.repositories.tourist_spot_repository_impl import \
     TouristSpotRepositoryImpl
-)
 
 
 # 요청 모델
@@ -21,21 +19,13 @@ class AlternativeSpotRequestModel(BaseModel):
     """대체 여행지 추천 요청 모델"""
 
     itinerary: List[int] = Field(
-        ...,
-        description="현재 여행 일정에 포함된 관광지 ID 목록"
+        ..., description="현재 여행 일정에 포함된 관광지 ID 목록"
     )
     modify_idx: List[int] = Field(
-        ...,
-        description="대체 여행지를 추천받을 인덱스 목록 (0부터 시작)"
+        ..., description="대체 여행지를 추천받을 인덱스 목록 (0부터 시작)"
     )
-    radius: float = Field(
-        5.0,
-        description="대체 여행지 검색 반경 (km)"
-    )
-    recommend_count: int = Field(
-        5,
-        description="각 인덱스별 추천할 대체 여행지 개수"
-    )
+    radius: float = Field(5.0, description="대체 여행지 검색 반경 (km)")
+    recommend_count: int = Field(5, description="각 인덱스별 추천할 대체 여행지 개수")
 
 
 # 응답 모델
@@ -43,8 +33,7 @@ class AlternativeSpotResponseModel(BaseModel):
     """대체 여행지 추천 응답 모델"""
 
     alternatives: Dict[str, List[int]] = Field(
-        ...,
-        description="인덱스별 대체 여행지 ID 목록을 담은 딕셔너리"
+        ..., description="인덱스별 대체 여행지 ID 목록을 담은 딕셔너리"
     )
 
 
@@ -91,7 +80,7 @@ async def recommend_alternative_spots(
             itinerary=request_data.itinerary,
             modify_idx=request_data.modify_idx,
             radius=request_data.radius,
-            recommend_count=request_data.recommend_count
+            recommend_count=request_data.recommend_count,
         )
 
         # 유스케이스 실행

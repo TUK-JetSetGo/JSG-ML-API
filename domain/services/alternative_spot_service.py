@@ -2,8 +2,8 @@
 대체 여행지 추천 서비스 모듈
 """
 
-from typing import Dict, List, Optional, Tuple
 import random
+from typing import Dict, List, Optional, Tuple
 
 from domain.entities.tourist_spot import TouristSpot
 from domain.value_objects.coordinate import Coordinate
@@ -34,7 +34,9 @@ class AlternativeSpotService:
             인덱스별 대체 여행지 ID 목록을 담은 딕셔너리
         """
         # 관광지 ID를 키로 하는 관광지 사전 생성
-        spot_dict: Dict[int, TouristSpot] = {spot.tourist_spot_id: spot for spot in spots}
+        spot_dict: Dict[int, TouristSpot] = {
+            spot.tourist_spot_id: spot for spot in spots
+        }
 
         # 결과 딕셔너리 초기화
         result_dict: Dict[str, List[int]] = {}
@@ -58,11 +60,13 @@ class AlternativeSpotService:
                 original_spot,
                 spots,
                 radius,
-                exclude_ids=itinerary  # 현재 일정에 있는 관광지는 제외
+                exclude_ids=itinerary,  # 현재 일정에 있는 관광지는 제외
             )
 
             # 대체 관광지 ID 목록 추출 (최대 recommend_count개)
-            alternative_ids = [spot.tourist_spot_id for spot in alternatives[:recommend_count]]
+            alternative_ids = [
+                spot.tourist_spot_id for spot in alternatives[:recommend_count]
+            ]
             result_dict[str(idx)] = alternative_ids
 
         return result_dict
@@ -87,7 +91,9 @@ class AlternativeSpotService:
             대체 여행지가 포함된 새로운 여행 일정 관광지 ID 목록
         """
         # 관광지 ID를 키로 하는 관광지 사전 생성
-        spot_dict: Dict[int, TouristSpot] = {spot.tourist_spot_id: spot for spot in spots}
+        spot_dict: Dict[int, TouristSpot] = {
+            spot.tourist_spot_id: spot for spot in spots
+        }
 
         # 결과 여행 일정 초기화 (원본 복사)
         result_itinerary = itinerary.copy()
@@ -110,7 +116,7 @@ class AlternativeSpotService:
                 original_spot,
                 spots,
                 radius,
-                exclude_ids=itinerary  # 현재 일정에 있는 관광지는 제외
+                exclude_ids=itinerary,  # 현재 일정에 있는 관광지는 제외
             )
 
             # 대체 관광지가 있으면 교체

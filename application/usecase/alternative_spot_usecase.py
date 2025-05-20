@@ -67,7 +67,7 @@ class AlternativeSpotUseCase:
             itinerary=request.itinerary,
             modify_idx=request.modify_idx,
             radius=request.radius,
-            recommend_count=request.recommend_count
+            recommend_count=request.recommend_count,
         )
 
         # 응답 생성
