@@ -7,7 +7,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from interface.api.endpoints import itinerary, alternative_spot
+from interface.api.endpoints import alternative_spot, itinerary
 
 logging.basicConfig(
     level=logging.INFO,

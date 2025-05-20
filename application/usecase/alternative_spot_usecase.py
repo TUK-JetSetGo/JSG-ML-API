@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from domain.entities.tourist_spot import TouristSpot
 from domain.repositories.tourist_spot_repository import TouristSpotRepository
@@ -17,22 +17,23 @@ class AlternativeSpotRequest:
     itinerary: List[int]
     modify_idx: List[int]
     radius: float = 5.0
+    recommend_count: int = 5
 
 
 @dataclass
 class AlternativeSpotResponse:
     """대체 여행지 추천 응답 데이터"""
 
-    itinerary: List[int]
+    alternatives: Dict[str, List[int]]
 
 
 class AlternativeSpotUseCase:
     """대체 여행지 추천 유스케이스"""
 
     def __init__(
-            self,
-            tourist_spot_repository: TouristSpotRepository,
-            alternative_spot_service: AlternativeSpotService,
+        self,
+        tourist_spot_repository: TouristSpotRepository,
+        alternative_spot_service: AlternativeSpotService,
     ):
         """
         초기화
@@ -61,12 +62,13 @@ class AlternativeSpotUseCase:
             raise ValueError("관광지 데이터를 찾을 수 없습니다.")
 
         # 대체 여행지 추천
-        new_itinerary = self.alternative_spot_service.find_alternative_spots(
+        alternatives = self.alternative_spot_service.find_alternative_spots_multi(
             spots=all_spots,
             itinerary=request.itinerary,
             modify_idx=request.modify_idx,
             radius=request.radius,
+            recommend_count=request.recommend_count
         )
 
         # 응답 생성
-        return AlternativeSpotResponse(itinerary=new_itinerary)
+        return AlternativeSpotResponse(alternatives=alternatives)

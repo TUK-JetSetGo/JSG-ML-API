@@ -32,15 +32,19 @@ class AlternativeSpotRequestModel(BaseModel):
         5.0,
         description="대체 여행지 검색 반경 (km)"
     )
+    recommend_count: int = Field(
+        5,
+        description="각 인덱스별 추천할 대체 여행지 개수"
+    )
 
 
 # 응답 모델
 class AlternativeSpotResponseModel(BaseModel):
     """대체 여행지 추천 응답 모델"""
 
-    itinerary: List[int] = Field(
+    alternatives: Dict[str, List[int]] = Field(
         ...,
-        description="대체 여행지가 포함된 새로운 여행 일정 관광지 ID 목록"
+        description="인덱스별 대체 여행지 ID 목록을 담은 딕셔너리"
     )
 
 
@@ -68,8 +72,8 @@ router = APIRouter(prefix="/api/v1/alternatives", tags=["alternatives"])
     description="입력으로 관광지 번호 리스트가 들어오면 그 여행지와 가까운 대체 여행지를 추천합니다.",
 )
 async def recommend_alternative_spots(
-        request_data: AlternativeSpotRequestModel,
-        usecase: AlternativeSpotUseCase = Depends(get_alternative_spot_usecase),
+    request_data: AlternativeSpotRequestModel,
+    usecase: AlternativeSpotUseCase = Depends(get_alternative_spot_usecase),
 ) -> AlternativeSpotResponseModel:
     """
     대체 여행지 추천 엔드포인트
@@ -87,13 +91,14 @@ async def recommend_alternative_spots(
             itinerary=request_data.itinerary,
             modify_idx=request_data.modify_idx,
             radius=request_data.radius,
+            recommend_count=request_data.recommend_count
         )
 
         # 유스케이스 실행
         response: AlternativeSpotResponse = usecase.execute(usecase_request)
 
         # 응답 모델 변환
-        return AlternativeSpotResponseModel(itinerary=response.itinerary)
+        return AlternativeSpotResponseModel(alternatives=response.alternatives)
 
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
